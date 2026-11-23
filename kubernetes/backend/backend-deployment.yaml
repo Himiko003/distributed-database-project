@@ -1,0 +1,61 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sbdt-backend
+  namespace: sbdt
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sbdt-backend
+  template:
+    metadata:
+      labels:
+        app: sbdt-backend
+    spec:
+      containers:
+        - name: backend
+          image: distributed-database-project-backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: sbdt-config
+            - secretRef:
+                name: sbdt-secret
+
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

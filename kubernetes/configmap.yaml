@@ -1,0 +1,14 @@
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sbdt-config
+  namespace: sbdt
+data:
+  DB_NAME: "sbdt_db"
+  DB_USER: "app_user"
+  DB_PORT: "5432"
+  DB_WRITE_HOST: "postgres-primary"
+  DB_READ_HOST: "postgres-replica"
+  KEYCLOAK_ISSUER: "http://auth.lokal/realms/uts-sbdt"
+  KEYCLOAK_JWKS_URL: "http://keycloak:8080/realms/uts-sbdt/protocol/openid-connect/certs"

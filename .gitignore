@@ -1,0 +1,20 @@
+.env
+__pycache__/
+*.py[cod]
+.venv/
+.vscode/
+
+# Sensitive configuration
+.env.*
+!.env.example
+kubernetes/secret.yaml
+
+# Database backups
+*.dump
+*.backup
+
+# Local data and cache
+__pycache__/
+*.py[cod]
+.venv/
+.vscode/

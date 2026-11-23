@@ -1,0 +1,105 @@
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-primary
+  namespace: sbdt
+spec:
+  serviceName: postgres-primary
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: postgres-primary
+
+  template:
+    metadata:
+      labels:
+        app: postgres-primary
+
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - name: postgres
+              containerPort: 5432
+              protocol: TCP
+
+          env:
+            - name: POSTGRES_DB
+              value: "sbdt_db"
+
+            - name: POSTGRES_USER
+              value: "app_user"
+
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sbdt-secret
+                  key: DB_PASSWORD
+
+          args:
+            - postgres
+            - -c
+            - wal_level=replica
+            - -c
+            - max_wal_senders=10
+            - -c
+            - max_replication_slots=10
+
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U app_user -h 127.0.0.1 -p 5432
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 15
+            failureThreshold: 6
+
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U app_user -h 127.0.0.1 -p 5432
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            timeoutSeconds: 15
+            failureThreshold: 6
+
+          volumeMounts:
+            - name: primary-storage
+              mountPath: /var/lib/postgresql/data
+
+            - name: primary-init
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+
+      volumes:
+        - name: primary-init
+          configMap:
+            name: postgres-primary-init
+            defaultMode: 0755
+
+  volumeClaimTemplates:
+    - metadata:
+        name: primary-storage
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 2Gi

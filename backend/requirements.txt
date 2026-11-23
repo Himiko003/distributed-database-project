@@ -1,0 +1,6 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+psycopg[binary]==3.2.3
+scikit-learn==1.6.0
+numpy==2.2.1
+PyJWT[crypto]==2.10.1

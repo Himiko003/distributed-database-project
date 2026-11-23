@@ -1,0 +1,32 @@
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sbdt-ingress
+  namespace: sbdt
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: auth.lokal
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: keycloak
+                port:
+                  number: 8080
+
+    - host: api.lokal
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sbdt-backend
+                port:
+                  number: 8000

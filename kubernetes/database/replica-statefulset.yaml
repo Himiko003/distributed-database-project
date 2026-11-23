@@ -1,0 +1,103 @@
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-replica
+  namespace: sbdt
+spec:
+  serviceName: postgres-replica
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: postgres-replica
+
+  template:
+    metadata:
+      labels:
+        app: postgres-replica
+
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - name: postgres
+              containerPort: 5432
+              protocol: TCP
+
+          env:
+            - name: PRIMARY_HOST
+              value: "postgres-primary"
+
+            - name: PRIMARY_PORT
+              value: "5432"
+
+            - name: REPLICATION_USER
+              value: "replicator"
+
+            - name: REPLICATION_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sbdt-secret
+                  key: REPLICATION_PASSWORD
+
+          command:
+            - /bin/bash
+            - /replica/replica-entrypoint.sh
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 384Mi
+
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U app_user -h 127.0.0.1 -p 5432
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 15
+            failureThreshold: 6
+
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U app_user -h 127.0.0.1 -p 5432
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            timeoutSeconds: 15
+            failureThreshold: 6
+
+          volumeMounts:
+            - name: replica-storage
+              mountPath: /var/lib/postgresql/data
+
+            - name: replica-init
+              mountPath: /replica
+              readOnly: true
+
+      volumes:
+        - name: replica-init
+          configMap:
+            name: postgres-replica-init
+            defaultMode: 0755
+
+  volumeClaimTemplates:
+    - metadata:
+        name: replica-storage
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 2Gi

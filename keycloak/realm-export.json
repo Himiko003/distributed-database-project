@@ -1,0 +1,25 @@
+{
+  "realm": "uts-sbdt",
+  "enabled": true,
+  "displayName": "UTS SBDT",
+  "clients": [
+    {
+      "clientId": "sbdt-api",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": ["http://localhost:8000/*"],
+      "webOrigins": ["http://localhost:8000"]
+    }
+  ],
+  "users": [
+    {
+      "username": "mahasiswa",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "User",
+      "lastName": "Mahasiswa",
+          }
+  ]
+}
