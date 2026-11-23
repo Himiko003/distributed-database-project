@@ -7,21 +7,22 @@ metadata:
 spec:
   serviceName: postgres-replica
   replicas: 1
-
   selector:
     matchLabels:
       app: postgres-replica
-
   template:
     metadata:
       labels:
         app: postgres-replica
-
     spec:
       containers:
-        - name: postgres
+        - name: postgres-replica
           image: postgres:16
           imagePullPolicy: IfNotPresent
+
+          command:
+            - /bin/bash
+            - /replica/replica-entrypoint.sh
 
           ports:
             - name: postgres
@@ -30,13 +31,13 @@ spec:
 
           env:
             - name: PRIMARY_HOST
-              value: "postgres-primary"
+              value: postgres-primary
 
             - name: PRIMARY_PORT
               value: "5432"
 
             - name: REPLICATION_USER
-              value: "replicator"
+              value: replicator
 
             - name: REPLICATION_PASSWORD
               valueFrom:
@@ -44,9 +45,12 @@ spec:
                   name: sbdt-secret
                   key: REPLICATION_PASSWORD
 
-          command:
-            - /bin/bash
-            - /replica/replica-entrypoint.sh
+            # Digunakan pg_basebackup untuk autentikasi ke Primary
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sbdt-secret
+                  key: REPLICATION_PASSWORD
 
           resources:
             requests:
@@ -59,23 +63,35 @@ spec:
           readinessProbe:
             exec:
               command:
-                - sh
-                - -c
-                - pg_isready -U app_user -h 127.0.0.1 -p 5432
-            initialDelaySeconds: 30
-            periodSeconds: 10
-            timeoutSeconds: 15
+                - pg_isready
+                - -U
+                - app_user
+                - -d
+                - sbdt_db
+                - -h
+                - 127.0.0.1
+                - -p
+                - "5432"
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
             failureThreshold: 6
 
           livenessProbe:
             exec:
               command:
-                - sh
-                - -c
-                - pg_isready -U app_user -h 127.0.0.1 -p 5432
-            initialDelaySeconds: 60
-            periodSeconds: 15
-            timeoutSeconds: 15
+                - pg_isready
+                - -U
+                - app_user
+                - -d
+                - sbdt_db
+                - -h
+                - 127.0.0.1
+                - -p
+                - "5432"
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
             failureThreshold: 6
 
           volumeMounts:

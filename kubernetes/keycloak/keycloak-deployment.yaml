@@ -1,4 +1,3 @@
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -18,30 +17,34 @@ spec:
         - name: keycloak
           image: quay.io/keycloak/keycloak:26.0
           imagePullPolicy: IfNotPresent
-
           args:
             - start-dev
             - --http-enabled=true
+            - --hostname=http://auth.lokal
             - --hostname-strict=false
-
+            - --proxy-headers=xforwarded
+            - --import-realm
           ports:
             - name: http
               containerPort: 8080
               protocol: TCP
-
           env:
             - name: KC_BOOTSTRAP_ADMIN_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: sbdt-secret
                   key: KEYCLOAK_ADMIN
-
             - name: KC_BOOTSTRAP_ADMIN_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: sbdt-secret
                   key: KEYCLOAK_ADMIN_PASSWORD
-
+            - name: KC_HEALTH_ENABLED
+              value: "true"
+          volumeMounts:
+            - name: realm-import
+              mountPath: /opt/keycloak/data/import
+              readOnly: true
           resources:
             requests:
               cpu: 100m
@@ -49,7 +52,6 @@ spec:
             limits:
               cpu: 500m
               memory: 512Mi
-
           readinessProbe:
             httpGet:
               path: /health/ready
@@ -58,7 +60,6 @@ spec:
             periodSeconds: 15
             timeoutSeconds: 10
             failureThreshold: 6
-
           livenessProbe:
             httpGet:
               path: /health/live
@@ -67,3 +68,7 @@ spec:
             periodSeconds: 20
             timeoutSeconds: 10
             failureThreshold: 6
+      volumes:
+        - name: realm-import
+          configMap:
+            name: keycloak-realm
